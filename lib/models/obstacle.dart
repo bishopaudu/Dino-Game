@@ -6,7 +6,7 @@ import 'dart:ui';
 /// they move off the left edge of the screen.
 /// 
 /// 
-enum ObstacleType { smallCactus, tallCactus }
+enum ObstacleType { smallCactus, tallCactus, wideCactus }
 
 class Obstacle {
   /// Horizontal position (left edge). Decreases every frame.

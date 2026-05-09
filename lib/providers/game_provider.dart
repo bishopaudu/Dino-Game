@@ -75,8 +75,8 @@ class GameProvider extends ChangeNotifier {
 }*/
 
 import 'dart:ui';
+import 'package:dino_game/models/birds.dart';
 import 'package:dino_game/models/clouds.dart';
-import 'package:dino_game/models/ground.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../core/game_controller.dart';
@@ -84,43 +84,36 @@ import '../core/game_loop.dart';
 import '../core/game_state.dart';
 import '../models/dino.dart';
 import '../models/obstacle.dart';
+import '../models/ground.dart';
 
 class GameProvider extends ChangeNotifier {
-  GameController? _controller;  // nullable — NOT late
+  GameController? _controller;
   GameLoop? _loop;
-  Ticker? _notifyTicker;        // only ONE ticker total
+  Ticker? _notifyTicker;
   bool isInitialized = false;
 
-  // Safe accessors — return fallback values until initialized
-  GameState get gameState => _controller?.gameState ?? GameState.initial;
-  int get score => _controller?.score ?? 0;
-  Dino? get dino => _controller?.dino;           // nullable — canvas checks before use
+  GameState get gameState   => _controller?.gameState ?? GameState.initial;
+  int get score             => _controller?.score ?? 0;
+  int get highScore         => _controller?.highScore ?? 0;
+  Dino? get dino            => _controller?.dino;
   List<Obstacle> get obstacles => _controller?.obstacles ?? [];
-  double get groundY => _controller?.groundY ?? 300;
-    List<Clouds> get clouds => _controller?.clouds ?? [];
-  //Ground? get ground => _controller?.ground;
-  Ground get ground => _controller?.ground ?? Ground();
-
-    int get highScore => _controller?.highScore ?? 0;
-
+  List<Bird> get birds      => _controller?.birds ?? [];
+  List<Clouds> get clouds    => _controller?.clouds ?? [];
+  Ground get ground         => _controller?.ground ?? Ground();
+  double get groundY        => _controller?.groundY ?? 300;
+  double get timeOfDay      => _controller?.timeOfDay ?? 0.0;
+  double get flashTimer     => _controller?.flashTimer ?? 0.0;
 
   void initialize(Size size, TickerProvider vsync) {
-    if (isInitialized) return;  // guard against double-init
-
+    if (isInitialized) return;
     _controller = GameController();
     _controller!.initialize(size);
-
     _loop = GameLoop(_controller!, vsync);
     _loop!.start();
-
-    // ONE ticker only — drives both the game loop notify and repaint
-    _notifyTicker = vsync.createTicker((_) {
-      notifyListeners();
-    });
+    _notifyTicker = vsync.createTicker((_) => notifyListeners());
     _notifyTicker!.start();
-
     isInitialized = true;
-    notifyListeners(); // tell UI we're ready
+    notifyListeners();
   }
 
   void onTap() {

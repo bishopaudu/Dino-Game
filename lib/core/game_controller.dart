@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui';
+import 'package:dino_game/models/birds.dart';
 import 'package:dino_game/models/clouds.dart';
 import 'package:dino_game/models/ground.dart';
 import 'package:dino_game/system/collision_system.dart';
@@ -26,14 +27,26 @@ class GameController {
 Dino dino = Dino(x: 0, y: 0);  // placeholder, overwritten by initialize()
   List<Obstacle> obstacles = [];
    List<Clouds> clouds = [];
+     List<Bird> birds = [];
+
  // late Ground ground;
  // AFTER
 Ground ground = Ground();
 
+// ── Day/night ─────────────────────────────────────────────
+  /// 0.0 = full day, 1.0 = full night. Cycles back to day.
+  double timeOfDay = 0.0;
+
+  // ── Collision flash ───────────────────────────────────────
+  /// Counts down after a collision for the flash effect.
+  double flashTimer = 0.0;
+  static const double _flashDuration = 0.25;
+
   // ── Systems ───────────────────────────────────────────────
-  final _physicsSystem = PhysicsSystem();
-  final _collisionSystem = CollisionSystem();
-  final _spawnSystem = SpawnSystem();
+  // ── Systems ───────────────────────────────────────────────
+  final _physics = PhysicsSystem();
+  final _collision = CollisionSystem();
+  final _spawner = SpawnSystem();
   final _random = Random();
 
 
@@ -98,7 +111,9 @@ int initCloudValue  =4;
       obstacles.clear();
       score = 0;
       gameSpeed = 250;
-      _spawnSystem.reset();
+        timeOfDay = 0.0;
+    flashTimer = 0.0;
+      _spawner.reset();
       _resetDino();
             _spawnInitialClouds();
 
@@ -110,7 +125,7 @@ int initCloudValue  =4;
       debugPrint('handleTap called — state: $gameState'); // ← add this
 
     if (gameState == GameState.playing) {
-      _physicsSystem.jump(dino);
+      _physics.jump(dino);
     } else if (gameState == GameState.initial || gameState == GameState.gameOver) {
       startGame();
     }
@@ -164,73 +179,90 @@ int initCloudValue  =4;
     // 7. Gradually increase speed over time
     gameSpeed = 250 + score * 0.5;
   }*/
-   void update(double dt) {
+
+  void update(double dt) {
+    // Flash timer ticks even on game over (finishes the flash effect)
+    if (flashTimer > 0) flashTimer = (flashTimer - dt).clamp(0, _flashDuration);
+
     if (gameState != GameState.playing) return;
 
-    // 1. Physics
-    _physicsSystem.update(dino, groundY, dt);
-
-    // 2. Run animation — only animate legs when on the ground
+    // 1. Physics + animation
+    _physics.update(dino, groundY, dt);
     _updateDinoAnimation(dt);
 
-    // 3. Scroll ground
+    // 2. Day/night — full cycle every ~120 seconds of play
+    timeOfDay = (timeOfDay + dt / 120.0) % 1.0;
+
+    // 3. Ground scroll
     ground.scrollOffset += gameSpeed * dt;
 
-    // 4. Move and cull obstacles
+    // 4. Move obstacles
     for (final obs in obstacles) {
       obs.x -= gameSpeed * dt;
     }
-    obstacles.removeWhere((obs) => obs.x + obs.width < 0);
+    obstacles.removeWhere((o) => o.x + o.width < 0);
 
-    // 5. Move and recycle clouds (parallax: 20% of game speed)
+    // 5. Move birds — slightly faster than ground speed
+    for (final bird in birds) {
+      bird.x -= gameSpeed * 1.3 * dt;
+      bird.flapTime += dt;
+    }
+    birds.removeWhere((b) => b.x + b.width < 0);
+
+    // 6. Clouds (parallax)
     for (final cloud in clouds) {
       cloud.X -= gameSpeed * 0.2 * dt;
     }
-    clouds.removeWhere((cloud) => cloud.X + cloud.width < 0);
-
-    // Spawn a new cloud when one exits
+    clouds.removeWhere((c) => c.X + c.width < 0);
     if (clouds.length < 4 && _random.nextDouble() < 0.005) {
       clouds.add(_createCloud());
     }
 
-    // 6. Spawn obstacles
-    final newObstacle = _spawnSystem.update(
-      dt, canvasSize.width, groundY, score,
-    );
-    if (newObstacle != null) {
-      obstacles.add(newObstacle);
-    }
+    // 7. Spawn
+    final newObs = _spawner.updateObstacles(
+        dt, canvasSize.width, groundY, score);
+    if (newObs != null) obstacles.add(newObs);
 
-    // 7. Collision
-    if (_collisionSystem.checkCollision(dino, obstacles)) {
+    final newBird = _spawner.updateBirds(
+        dt, canvasSize.width, groundY, score);
+    if (newBird != null) birds.add(newBird);
+
+    // 8. Collision
+    if (_collision.checkCollision(dino, obstacles) ||
+        _checkBirdCollision()) {
       _onGameOver();
       return;
     }
 
-    // 8. Score and speed
+    // 9. Score + speed
     score += (60 * dt).round();
     gameSpeed = 250 + score * 0.5;
+  }
+
+  bool _checkBirdCollision() {
+    final dinoBounds = dino.bounds.deflate(6);
+    for (final bird in birds) {
+      if (dinoBounds.overlaps(bird.bounds)) return true;
+    }
+    return false;
   }
 
   void _updateDinoAnimation(double dt) {
     if (dino.isOnGround) {
       dino.animationTime += dt;
-      // Toggle leg every _stepInterval seconds
       if (dino.animationTime >= _stepInterval) {
         dino.animationTime = 0;
         dino.leftLegUp = !dino.leftLegUp;
       }
     } else {
-      // Legs together when airborne
       dino.animationTime = 0;
       dino.leftLegUp = false;
     }
   }
 
   void _onGameOver() {
-    if (score > highScore) {
-      highScore = score;
-    }
+    if (score > highScore) highScore = score;
+    flashTimer = _flashDuration;   // trigger flash
     gameState = GameState.gameOver;
   }
 }
