@@ -28,6 +28,13 @@ class Dino {
   /// Used to prevent double-jumping.
   bool isOnGround;
 
+    // ── Animation state ───────────────────────────────────────
+  /// Accumulated time used to drive the run cycle animation.
+  double animationTime;
+
+  /// Which leg is currently "up" — toggles every step cycle.
+  bool leftLegUp;
+
   Dino({
     required this.x,
     required this.y,
@@ -35,6 +42,8 @@ class Dino {
     this.height = 60,
     this.velocityY = 0,
     this.isOnGround = true,
+    this.animationTime = 0,
+    this.leftLegUp = false,
   });
 
   /// Returns a [Rect] representing the dino's bounding box.

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:dino_game/system/collision_system.dart';
 import 'package:dino_game/system/physics_system.dart';
 import 'package:dino_game/system/spawn_system.dart';
+import 'package:flutter/material.dart';
 
 import '../models/dino.dart';
 import '../models/obstacle.dart';
@@ -70,6 +71,8 @@ class GameController {
   }
 
   void handleTap() {
+      debugPrint('handleTap called — state: $gameState'); // ← add this
+
     if (gameState == GameState.playing) {
       _physicsSystem.jump(dino);
     } else if (gameState == GameState.initial || gameState == GameState.gameOver) {

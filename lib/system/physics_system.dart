@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../models/dino.dart';
 
 /// Handles all physics simulation for the dino.
@@ -46,6 +48,7 @@ class PhysicsSystem {
   /// Only allowed if the dino is currently on the ground.
   /// This prevents double-jumping.
   void jump(Dino dino) {
+     debugPrint('jump() called — isOnGround: ${dino.isOnGround}');
     if (dino.isOnGround) {
       dino.velocityY = jumpForce;  // Launch upward
       dino.isOnGround = false;      // Now airborne
