@@ -75,6 +75,8 @@ class GameProvider extends ChangeNotifier {
 }*/
 
 import 'dart:ui';
+import 'package:dino_game/models/clouds.dart';
+import 'package:dino_game/models/ground.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../core/game_controller.dart';
@@ -95,6 +97,12 @@ class GameProvider extends ChangeNotifier {
   Dino? get dino => _controller?.dino;           // nullable — canvas checks before use
   List<Obstacle> get obstacles => _controller?.obstacles ?? [];
   double get groundY => _controller?.groundY ?? 300;
+    List<Clouds> get clouds => _controller?.clouds ?? [];
+  //Ground? get ground => _controller?.ground;
+  Ground get ground => _controller?.ground ?? Ground();
+
+    int get highScore => _controller?.highScore ?? 0;
+
 
   void initialize(Size size, TickerProvider vsync) {
     if (isInitialized) return;  // guard against double-init

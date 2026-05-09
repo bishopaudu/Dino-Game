@@ -116,15 +116,19 @@ class _GameCanvasState extends State<GameCanvas>
             return GestureDetector(
               behavior: HitTestBehavior.opaque, // captures taps on empty space too
               onTap: provider.onTap,
-              child: provider.isInitialized && provider.dino != null
+              child: provider.isInitialized &&
+        provider.dino != null
                   ? CustomPaint(
                       size: size,
                       painter: GamePainter(
                         dino: provider.dino!,
                         obstacles: provider.obstacles,
+                        clouds: provider.clouds,
+                        ground: provider.ground!,
                         groundY: provider.groundY,
                         gameState: provider.gameState,
                         score: provider.score,
+                        highScore: provider.highScore,
                       ),
                     )
                   : const ColoredBox(
