@@ -1,82 +1,15 @@
-/*import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import '../core/game_controller.dart';
-import '../core/game_loop.dart';
-import '../core/game_state.dart';
-import '../models/dino.dart';
-import '../models/obstacle.dart';
-
-/// Provider that bridges the game engine and the Flutter widget tree.
-/// 
+/// Provider that bridges the game engine and the Flutter widget tree. 
 /// Why ChangeNotifier + notifyListeners?
 /// The game loop updates 60x/second. Rather than rebuilding the entire
 /// widget tree that fast, we let CustomPainter decide when to repaint
 /// by listening directly to this notifier. Only the canvas repaints —
 /// not the score text, not buttons, etc.
-class GameProvider extends ChangeNotifier {
-  late GameController _controller;
-  late GameLoop _loop;
-  Ticker? _notifyTicker;
-  bool isInitialized = false;
-
-  // ── Read-only accessors for the UI ─────────────────────────
-
-  GameState get gameState => _controller.gameState;
-  int get score => _controller.score;
-  Dino get dino => _controller.dino;
-  List<Obstacle> get obstacles => _controller.obstacles;
-  double get groundY => _controller.groundY;
-
-  // ── Initialization ─────────────────────────────────────────
-
-  /// Must be called once from the game canvas widget after layout.
-  void initialize(Size size, TickerProvider vsync) {
-        if (isInitialized) return;
-    _controller = GameController();
-    _controller.initialize(size);
-    _loop = GameLoop(_controller, vsync);
-    _loop.start();
-
-    // After each frame tick, notify the UI to repaint the canvas.
-    // This is the connection: game loop → ChangeNotifier → CustomPainter.
-    _controller; // ensure controller exists before we begin
-    _startNotifying(vsync);
-    _notifyTicker = vsync.createTicker((_) {
-      notifyListeners(); // triggers CustomPainter repaint each frame
-    });
-    _notifyTicker!.start();
-
-    isInitialized = true;
-  }
-
-  void _startNotifying(TickerProvider vsync) {
-    // Use a second ticker just to call notifyListeners each frame.
-    // This triggers the CustomPainter's repaint.
-    vsync.createTicker((_) {
-      notifyListeners();
-    }).start();
-  }
-
-  // ── Actions ────────────────────────────────────────────────
+library;
 
 
-  void onTap() {
-    // Silently ignore taps before initialization completes.
-    if (!isInitialized) return;
-    _controller!.handleTap();
-  }
-
-
-  @override
-  void dispose() {
-    _loop.dispose();
-    super.dispose();
-  }
-}*/
-
-import 'dart:ui';
 import 'package:dino_game/models/birds.dart';
 import 'package:dino_game/models/clouds.dart';
+import 'package:dino_game/models/particle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../core/game_controller.dart';
@@ -103,6 +36,11 @@ class GameProvider extends ChangeNotifier {
   double get groundY        => _controller?.groundY ?? 300;
   double get timeOfDay      => _controller?.timeOfDay ?? 0.0;
   double get flashTimer     => _controller?.flashTimer ?? 0.0;
+   double get shakeMagnitude       => _controller?.shakeMagnitude ?? 0.0;
+  List<Particle> get particles    => _controller?.particles ?? [];
+  bool get isCelebrating          => _controller?.isCelebrating ?? false;
+  double get celebrationOpacity   => _controller?.celebrationOpacity ?? 0.0;
+  int get celebrationScore        => _controller?.celebrationScore ?? 0;
 
   void initialize(Size size, TickerProvider vsync) {
     if (isInitialized) return;
@@ -120,6 +58,9 @@ class GameProvider extends ChangeNotifier {
     if (!isInitialized || _controller == null) return;
     _controller!.handleTap();
   }
+
+    void onDuckStart()  { if (!isInitialized) return; _controller!.handleDuckStart(); }
+  void onDuckEnd()    { if (!isInitialized) return; _controller!.handleDuckEnd(); }
 
   @override
   void dispose() {

@@ -34,6 +34,8 @@ class Dino {
 
   /// Which leg is currently "up" — toggles every step cycle.
   bool leftLegUp;
+// Whether the dino is currently ducking.
+  bool isDucking;
 
   Dino({
     required this.x,
@@ -44,9 +46,25 @@ class Dino {
     this.isOnGround = true,
     this.animationTime = 0,
     this.leftLegUp = false,
+    this.isDucking = false,
   });
 
   /// Returns a [Rect] representing the dino's bounding box.
   /// This is used for collision detection (AABB).
   Rect get bounds => Rect.fromLTWH(x, y, width, height);
+
+   
+   
+   
+  /// Ducked bounding box — same width, half height, anchored to ground.
+  /// We shift y down so the bottom edge stays at the same ground point.
+  Rect get duckBounds => Rect.fromLTWH(
+        x,
+        y + height * 0.5,   // shift down by half height
+        width,
+        height * 0.5,       // half the height
+      );
+
+  /// The bounding box currently active — depends on duck state.
+  Rect get activeBounds => isDucking ? duckBounds : bounds;
 }

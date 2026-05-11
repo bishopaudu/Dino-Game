@@ -14,7 +14,10 @@ class CollisionSystem {
   bool checkCollision(Dino dino, List<Obstacle> obstacles) {
     // Add a small inset to make the hitbox slightly smaller than visual.
     // This feels fairer to the player — pixel-perfect hits feel cheap.
-    final dinoBounds = dino.bounds.deflate(6);
+        final dinoBounds = dino.activeBounds.deflate(5);
+
+    //final dinoBounds = dino.bounds.deflate(6);
+
 
     for (final obstacle in obstacles) {
       final obstacleBounds = obstacle.bounds.deflate(4);

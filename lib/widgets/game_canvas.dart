@@ -61,6 +61,12 @@ class _GameCanvasState extends State<GameCanvas>
                         highScore: provider.highScore,
                         timeOfDay: provider.timeOfDay,
                         flashTimer: provider.flashTimer,
+                        shakeMagnitude: provider.shakeMagnitude,
+                        isCelebrating: provider.isCelebrating,
+                        celebrationOpacity: provider.celebrationOpacity,
+                        celebrationScore: provider.celebrationScore,
+                                                particles: provider.particles,
+
                       ),
                     )
                   : const ColoredBox(

@@ -1,13 +1,14 @@
 import 'dart:math';
-import 'dart:ui';
 import 'package:dino_game/models/birds.dart';
 import 'package:dino_game/models/clouds.dart';
 import 'package:dino_game/models/ground.dart';
+import 'package:dino_game/models/particle.dart';
 import 'package:dino_game/system/collision_system.dart';
+import 'package:dino_game/system/milestone_system.dart';
+import 'package:dino_game/system/partilce_system.dart';
 import 'package:dino_game/system/physics_system.dart';
 import 'package:dino_game/system/spawn_system.dart';
 import 'package:flutter/material.dart';
-
 import '../models/dino.dart';
 import '../models/obstacle.dart';
 import 'game_state.dart';
@@ -20,17 +21,12 @@ import 'game_state.dart';
 /// - Runs the update loop
 /// - Manages game state transitions
 /// - Exposes state for the UI to read
-class GameController {
+/*class GameController {
   // ── Entities ──────────────────────────────────────────────
-  //late Dino dino;
-  // AFTER
 Dino dino = Dino(x: 0, y: 0);  // placeholder, overwritten by initialize()
   List<Obstacle> obstacles = [];
-   List<Clouds> clouds = [];
-     List<Bird> birds = [];
-
- // late Ground ground;
- // AFTER
+  List<Clouds> clouds = [];
+  List<Bird> birds = [];
 Ground ground = Ground();
 
 // ── Day/night ─────────────────────────────────────────────
@@ -131,55 +127,6 @@ int initCloudValue  =4;
     }
   }
 
-  // ── Main update loop ───────────────────────────────────────
-
-  /// Called every frame by the game loop with delta time in seconds.
-  /// 
-  /// Order matters:
-  ///   1. Update physics (move the dino)
-  ///   2. Update obstacles (move them left)
-  ///   3. Spawn new obstacles
-  ///   4. Check collisions
-  ///   5. Update score
-  /*void update(double dt) {
-    if (gameState != GameState.playing) return;
-
-    // 1. Physics
-    _physicsSystem.update(dino, groundY, dt);
-
-    // 2. Move obstacles left
-    for (final obs in obstacles) {
-      obs.x -= gameSpeed * dt;
-    }
-
-    // 3. Remove obstacles that have scrolled off-screen
-    obstacles.removeWhere((obs) => obs.x + obs.width < 0);
-
-    // 4. Spawn new obstacles
-    final newObstacle = _spawnSystem.update(
-      dt,
-      canvasSize.width,
-      groundY,
-      score,
-    );
-    if (newObstacle != null) {
-      obstacles.add(newObstacle);
-    }
-
-    // 5. Collision detection
-    if (_collisionSystem.checkCollision(dino, obstacles)) {
-      gameState = GameState.gameOver;
-      return;
-    }
-
-    // 6. Score: increments with time played (not pixel distance)
-    // 60 points per second is a good baseline.
-    score += (60 * dt).round();
-
-    // 7. Gradually increase speed over time
-    gameSpeed = 250 + score * 0.5;
-  }*/
-
   void update(double dt) {
     // Flash timer ticks even on game over (finishes the flash effect)
     if (flashTimer > 0) flashTimer = (flashTimer - dt).clamp(0, _flashDuration);
@@ -263,6 +210,212 @@ int initCloudValue  =4;
   void _onGameOver() {
     if (score > highScore) highScore = score;
     flashTimer = _flashDuration;   // trigger flash
+    gameState = GameState.gameOver;
+  }
+}*/
+
+
+class GameController {
+  // ── Entities ──────────────────────────────────────────────
+  Dino dino = Dino(x: 0, y: 0);
+  List<Obstacle> obstacles = [];
+  List<Bird> birds = [];
+  List<Clouds> clouds = [];
+  Ground ground = Ground();
+
+  // ── Systems ───────────────────────────────────────────────
+  final _physics    = PhysicsSystem();
+  final _collision  = CollisionSystem();
+  final _spawner    = SpawnSystem();
+  final _particles  = ParticleSystem();
+  final _milestones = MilestoneSystem();
+  final _random     = Random();
+
+  // ── State ─────────────────────────────────────────────────
+  GameState gameState = GameState.initial;
+  int score     = 0;
+  int highScore = 0;
+
+  // ── Effects ───────────────────────────────────────────────
+  double timeOfDay    = 0.0;
+  double flashTimer   = 0.0;
+  double shakeMagnitude = 0.0;  // screen shake intensity
+
+  static const double _flashDuration = 0.25;
+  static const double _shakeDuration = 0.35;
+
+  // ── World ─────────────────────────────────────────────────
+  double groundY    = 300;
+  double gameSpeed  = 250;
+  Size canvasSize   = Size.zero;
+
+  static const double _stepInterval = 0.15;
+
+  // ── Expose particle + milestone data to painter ────────────
+  List<Particle> get particles => _particles.particles;
+  bool get isCelebrating       => _milestones.isCelebrating;
+  double get celebrationOpacity => _milestones.celebrationOpacity;
+  int get celebrationScore     => _milestones.celebrationScore;
+
+  // ── Init ──────────────────────────────────────────────────
+
+  void initialize(Size size) {
+    canvasSize = size;
+    groundY = size.height * 0.75;
+    ground = Ground();
+    _resetDino();
+    _spawnInitialClouds();
+  }
+
+  void _resetDino() {
+    dino = Dino(x: canvasSize.width * 0.15, y: groundY - 60);
+  }
+
+  void _spawnInitialClouds() {
+    clouds.clear();
+    for (int i = 0; i < 4; i++) {
+      clouds.add(_makeCloud(x: _random.nextDouble() * canvasSize.width));
+    }
+  }
+
+  Clouds _makeCloud({double? x}) => Clouds(
+        X: x ?? canvasSize.width + 50,
+        Y: 40 + _random.nextDouble() * (groundY * 0.4),
+        width: 60 + _random.nextDouble() * 80,
+        opacity: 0.4 + _random.nextDouble() * 0.5,
+      );
+
+  // ── Lifecycle ─────────────────────────────────────────────
+
+  void startGame() {
+    obstacles.clear();
+    birds.clear();
+    _particles.clear();
+    score       = 0;
+    gameSpeed   = 250;
+    timeOfDay   = 0.0;
+    flashTimer  = 0.0;
+    shakeMagnitude = 0.0;
+    _spawner.reset();
+    _milestones.reset();
+    _resetDino();
+    ground = Ground();
+    _spawnInitialClouds();
+    gameState = GameState.playing;
+  }
+
+  // ── Input ─────────────────────────────────────────────────
+
+  void handleTap() {
+    if (gameState == GameState.playing) {
+      _physics.jump(dino);
+    } else {
+      startGame();
+    }
+  }
+
+  void handleDuckStart() {
+    if (gameState == GameState.playing) {
+      _physics.startDuck(dino);
+    }
+  }
+
+  void handleDuckEnd() {
+    if (gameState == GameState.playing) {
+      _physics.endDuck(dino);
+    }
+  }
+
+  // ── Update ────────────────────────────────────────────────
+
+  void update(double dt) {
+    // Effects tick even when game is over
+    if (flashTimer > 0) flashTimer = (flashTimer - dt).clamp(0, _flashDuration);
+    if (shakeMagnitude > 0) shakeMagnitude = (shakeMagnitude - dt * 2).clamp(0, 1.0);
+
+    _particles.update(dt);
+
+    if (gameState != GameState.playing) return;
+
+    // 1. Physics + animation
+    _physics.update(dino, groundY, dt);
+    _updateDinoAnimation(dt);
+
+    // 2. Day/night
+    timeOfDay = (timeOfDay + dt / 120.0) % 1.0;
+
+    // 3. Ground
+    ground.scrollOffset += gameSpeed * dt;
+
+    // 4. Obstacles
+    for (final obs in obstacles) obs.x -= gameSpeed * dt;
+    obstacles.removeWhere((o) => o.x + o.width < 0);
+
+    // 5. Birds
+    for (final bird in birds) {
+      bird.x -= gameSpeed * 1.3 * dt;
+      bird.flapTime += dt;
+    }
+    birds.removeWhere((b) => b.x + b.width < 0);
+
+    // 6. Clouds
+    for (final cloud in clouds) cloud.X -= gameSpeed * 0.2 * dt;
+    clouds.removeWhere((c) => c.X + c.width < 0);
+    if (clouds.length < 4 && _random.nextDouble() < 0.005) {
+      clouds.add(_makeCloud());
+    }
+
+    // 7. Spawn
+    final newObs = _spawner.updateObstacles(dt, canvasSize.width, groundY, score);
+    if (newObs != null) obstacles.add(newObs);
+
+    final newBird = _spawner.updateBirds(dt, canvasSize.width, groundY, score);
+    if (newBird != null) birds.add(newBird);
+
+    // 8. Collision
+    if (_collision.checkCollision(dino, obstacles) || _checkBirdCollision()) {
+      _onGameOver();
+      return;
+    }
+
+    // 9. Score + speed
+    score += (60 * dt).round();
+    gameSpeed = 250 + score * 0.5;
+
+    // 10. Milestones
+    _milestones.update(score, dt);
+  }
+
+  bool _checkBirdCollision() {
+    final dinoBounds = dino.activeBounds.deflate(6);
+    for (final bird in birds) {
+      if (dinoBounds.overlaps(bird.bounds)) return true;
+    }
+    return false;
+  }
+
+  void _updateDinoAnimation(double dt) {
+    if (dino.isOnGround && !dino.isDucking) {
+      dino.animationTime += dt;
+      if (dino.animationTime >= _stepInterval) {
+        dino.animationTime = 0;
+        dino.leftLegUp = !dino.leftLegUp;
+      }
+    } else {
+      dino.animationTime = 0;
+      dino.leftLegUp = false;
+    }
+  }
+
+  void _onGameOver() {
+    if (score > highScore) highScore = score;
+    flashTimer = _flashDuration;
+    shakeMagnitude = 1.0;
+    // Spawn explosion at dino center
+    _particles.spawnExplosion(
+      dino.x + dino.width / 2,
+      dino.y + dino.height / 2,
+    );
     gameState = GameState.gameOver;
   }
 }

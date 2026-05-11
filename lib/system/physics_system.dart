@@ -13,8 +13,9 @@ class PhysicsSystem {
 
   /// Initial upward velocity applied when the player jumps.
   /// Negative because screen Y increases downward.
-  static const double jumpForce = -700;
+  static const double jumpForce = -700;// pulls down faster when ducking
 
+ static const double duckGravity = 3200;
   /// Updates the dino's physics for one frame.
   ///
   /// [dino]       - the player to update
@@ -25,16 +26,24 @@ class PhysicsSystem {
     // Gravity constantly accelerates the dino downward.
     // v = v₀ + a·t  (velocity += acceleration × time)
     if (!dino.isOnGround) {
-      dino.velocityY += gravity * dt;
-    }
+            final g = dino.isDucking ? duckGravity : gravity;
 
+      //dino.velocityY += gravity * dt;
+            dino.velocityY += g * dt;
+
+    }
+  // Ground anchor depends on duck state
+    final effectiveHeight = dino.isDucking ? dino.height * 0.5 : dino.height;
+    //final groundLimit = groundY - effectiveHeight;
     // Apply velocity to position.
     // x = x₀ + v·t  (position += velocity × time)
     dino.y += dino.velocityY * dt;
 
     // Check if the dino has landed on the ground.
     // groundY is where the top of the dino should be when standing.
-    final groundLimit = groundY - dino.height;
+    //final groundLimit = groundY - dino.height;
+        final groundLimit = groundY - effectiveHeight;
+
     if (dino.y >= groundLimit) {
       // Clamp to ground — don't let it sink below.
       dino.y = groundLimit;
@@ -53,5 +62,17 @@ class PhysicsSystem {
       dino.velocityY = jumpForce;  // Launch upward
       dino.isOnGround = false;      // Now airborne
     }
+  }
+
+    void startDuck(Dino dino) {
+    dino.isDucking = true;
+    // If mid-air, cancel upward velocity so dino drops fast
+    if (!dino.isOnGround && dino.velocityY < 0) {
+      dino.velocityY = 200; // small downward nudge
+    }
+  }
+
+  void endDuck(Dino dino) {
+    dino.isDucking = false;
   }
 }
