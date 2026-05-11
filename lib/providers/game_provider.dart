@@ -7,6 +7,7 @@
 library;
 
 
+import 'package:dino_game/core/sprite_loader.dart';
 import 'package:dino_game/models/birds.dart';
 import 'package:dino_game/models/clouds.dart';
 import 'package:dino_game/models/particle.dart';
@@ -24,7 +25,9 @@ class GameProvider extends ChangeNotifier {
   GameLoop? _loop;
   Ticker? _notifyTicker;
   bool isInitialized = false;
-
+  // Sprites loaded once at startup
+  GameSprites sprites = GameSprites.empty;
+  bool spritesLoaded  = false;
   GameState get gameState   => _controller?.gameState ?? GameState.initial;
   int get score             => _controller?.score ?? 0;
   int get highScore         => _controller?.highScore ?? 0;
@@ -41,8 +44,32 @@ class GameProvider extends ChangeNotifier {
   bool get isCelebrating          => _controller?.isCelebrating ?? false;
   double get celebrationOpacity   => _controller?.celebrationOpacity ?? 0.0;
   int get celebrationScore        => _controller?.celebrationScore ?? 0;
+    double get totalTime             => _controller?.totalTime ?? 0.0;
 
-  void initialize(Size size, TickerProvider vsync) {
+
+  Future<void> initialize(Size size, TickerProvider vsync) async {
+    if (isInitialized) return;
+
+    // Load sprites in parallel with controller init
+    final results = await Future.wait([
+      _initController(size),
+      SpriteLoader.load(),
+    ]);
+
+    sprites      = results[1] as GameSprites;
+    spritesLoaded = true;
+
+    _loop = GameLoop(_controller!, vsync);
+    _loop!.start();
+
+    _notifyTicker = vsync.createTicker((_) => notifyListeners());
+    _notifyTicker!.start();
+
+    isInitialized = true;
+    notifyListeners();
+  }
+
+  /*void initialize(Size size, TickerProvider vsync) {
     if (isInitialized) return;
     _controller = GameController();
     _controller!.initialize(size);
@@ -52,6 +79,11 @@ class GameProvider extends ChangeNotifier {
     _notifyTicker!.start();
     isInitialized = true;
     notifyListeners();
+  }*/
+   Future<GameController> _initController(Size size) async {
+    _controller = GameController();
+    await _controller!.initialize(size);
+    return _controller!;
   }
 
   void onTap() {

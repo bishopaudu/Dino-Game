@@ -66,6 +66,10 @@ class _GameCanvasState extends State<GameCanvas>
                         celebrationOpacity: provider.celebrationOpacity,
                         celebrationScore: provider.celebrationScore,
                                                 particles: provider.particles,
+                                                                        totalTime: provider.totalTime,
+                                                                                                sprites: provider.sprites,
+
+
 
                       ),
                     )
