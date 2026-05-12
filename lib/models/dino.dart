@@ -1,8 +1,6 @@
 import 'dart:ui';
 
 /// Represents the player character (the dinosaur).
-/// 
-/// This is a pure data model — no Flutter widget dependencies.
 /// All values are in logical pixels relative to the game canvas.
 class Dino {
   /// Current horizontal position (left edge of dino).

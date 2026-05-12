@@ -1,9 +1,23 @@
 import 'package:dino_game/screen/game_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/game_provider.dart';
 
-void main() {
+void main() async {
+  // Required before any async work in main
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock to portrait — running games in landscape is disorienting
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Full immersive mode — hide status bar and nav bar
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+  runApp(const DinoGameApp());
   runApp(const DinoGameApp());
 }
 

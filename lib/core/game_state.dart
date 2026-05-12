@@ -3,7 +3,7 @@
 enum GameState {
   /// Waiting for the player to start.
   initial,
-
+ paused,
   /// The game is actively running.
   playing,
 
