@@ -1,12 +1,12 @@
-import 'package:dino_game/screen/game_screen.dart';
+import 'package:dino_game/screen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'providers/game_provider.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() async {
-  // Required before any async work in main
-  WidgetsFlutterBinding.ensureInitialized();
+  // flutter_native_splash — must be called before ensureInitialized
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Lock to portrait — running games in landscape is disorienting
   await SystemChrome.setPreferredOrientations([
@@ -17,7 +17,9 @@ void main() async {
   // Full immersive mode — hide status bar and nav bar
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-  runApp(const DinoGameApp());
+  // Remove the native OS splash and hand off to our Flutter splash screen
+  FlutterNativeSplash.remove();
+
   runApp(const DinoGameApp());
 }
 
@@ -27,15 +29,14 @@ class DinoGameApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Dino Game',
+      title: 'Dino Run',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
-      home: ChangeNotifierProvider(
-        // GameProvider is created at the app root.
-        // Any widget below can access it with context.read<GameProvider>()
-        create: (_) => GameProvider(),
-        child: const GameScreen(),
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF0D1B2A),
       ),
+      // SplashScreen navigates to GameScreen once its animation completes
+      home: const SplashScreen(),
     );
   }
 }
