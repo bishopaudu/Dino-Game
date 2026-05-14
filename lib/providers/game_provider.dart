@@ -8,8 +8,10 @@ library;
 
 
 import 'dart:ui';
+import 'package:dino_game/models/achievement.dart';
 import 'package:dino_game/models/birds.dart';
 import 'package:dino_game/models/clouds.dart';
+import 'package:dino_game/models/dino_skin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../core/game_controller.dart';
@@ -52,7 +54,10 @@ class GameProvider extends ChangeNotifier {
   int get celebrationScore         => _controller?.celebrationScore ?? 0;
   double get totalTime             => _controller?.totalTime ?? 0.0;
   bool get isPaused                => gameState == GameState.paused;
-
+ DinoSkin get activeSkin          => _controller?.activeSkin ?? DinoSkins.all.first;
+  Set<String> get unlockedSkinIds  => _controller?.unlockedSkinIds ?? {'classic'};
+  List<Achievement> get achievements => _controller?.achievements ?? [];
+  List<Achievement> get pendingUnlocks => _controller?.pendingUnlocks ?? [];
   // ── Init ──────────────────────────────────────────────────
 
   Future<void> initialize(Size size, TickerProvider vsync) async {
@@ -102,6 +107,18 @@ class GameProvider extends ChangeNotifier {
   void resetHighScore() {
     if (!isInitialized) return;
     _controller!.highScore = 0;
+    notifyListeners();
+  }
+
+    Future<void> selectSkin(DinoSkin skin) async {
+    if (!isInitialized) return;
+    await _controller!.selectSkin(skin);
+    notifyListeners();
+  }
+
+  /// Called by the banner widget when it has finished displaying.
+  void dismissUnlock(Achievement achievement) {
+    _controller?.pendingUnlocks.remove(achievement);
     notifyListeners();
   }
 

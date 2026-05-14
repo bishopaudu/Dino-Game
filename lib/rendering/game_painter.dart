@@ -11,6 +11,7 @@
 
 
 import 'package:dino_game/models/clouds.dart';
+import 'package:dino_game/models/dino_skin.dart';
 import 'package:dino_game/utils/daynightcolors.dart';
 import 'package:flutter/material.dart';
 import '../models/dino.dart';
@@ -935,6 +936,8 @@ class GamePainter extends CustomPainter {
   final double celebrationOpacity;
   final int celebrationScore;
   final double totalTime; // drives title bob
+  final DinoSkin activeSkin;
+
 
   // ── Palettes ───────────────────────────────────────────────
   static const _daySky          = Color(0xFFF7F7F7);
@@ -994,6 +997,7 @@ class GamePainter extends CustomPainter {
     required this.celebrationOpacity,
     required this.celebrationScore,
     required this.totalTime,
+    required this.activeSkin,
   });
 
   Color _lerp(Color day, Color night) => Color.lerp(day, night, timeOfDay)!;
@@ -1003,9 +1007,12 @@ class GamePainter extends CustomPainter {
     _skyPaint.color        = _lerp(_daySky, _nightSky);
     _groundPaint.color     = _lerp(_dayGround, _nightGround);
     _groundTickPaint.color = _lerp(_dayGroundTick, _nightGroundTick);
-    _dinoPaint.color       = _lerp(_dayDino, _nightDino);
-    _dinoLegPaint.color    = _lerp(_dayDino, _nightDino);
-    _obstaclePaint.color   = _lerp(_dayCactus, _nightCactus);
+   // _dinoPaint.color       = _lerp(_dayDino, _nightDino);
+   // _dinoLegPaint.color    = _lerp(_dayDino, _nightDino);
+  //  _obstaclePaint.color   = _lerp(_dayCactus, _nightCactus);
+  _dinoPaint.color    = activeSkin.bodyColor;
+_dinoLegPaint.color = activeSkin.legColor;
+_dinoEyePaint.color = activeSkin.eyeColor;
     _birdPaint.color       = _lerp(_dayBird, _nightBird);
 
     // Screen shake — save canvas state, translate, draw world, restore
